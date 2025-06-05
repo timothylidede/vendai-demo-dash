@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,12 +31,7 @@ import {
   Settings
 } from "lucide-react"
 
-interface InventoryViewProps {
-  triggerScrollToProducts?: boolean;
-}
-
-export function InventoryView({ triggerScrollToProducts = false }: InventoryViewProps) {
-  const productsTableRef = useRef<HTMLDivElement>(null);
+export function InventoryView() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [stockFilter, setStockFilter] = useState("all")
@@ -284,11 +279,6 @@ export function InventoryView({ triggerScrollToProducts = false }: InventoryView
     avgMonthlySales: newProduct.avgMonthlySales,
     leadTime: newProduct.leadTime
   }
-  useEffect(() => {
-    if (triggerScrollToProducts && productsTableRef.current) {
-      productsTableRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [triggerScrollToProducts]);
 
   setProducts(prev => [...prev, productToAdd])
   
@@ -550,162 +540,158 @@ export function InventoryView({ triggerScrollToProducts = false }: InventoryView
       </div>
 
       {/* Products Table */}
-      <div ref={productsTableRef}>
-        <Card className="bg-gray-900/60 border-gray-800/60 rounded-2xl overflow-hidden">
-          <CardHeader className="p-6">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Products</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="text-xs"
-              >
-                {selectedProducts.size === filteredProducts.length ? "Deselect All" : "Select All"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table className="min-w-full text-sm text-gray-300">
-              <TableHeader className="bg-gray-800/70">
+      <Card className="bg-gray-900/60 border-gray-800/60 rounded-2xl overflow-hidden">
+        <CardHeader className="p-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Products</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleSelectAll}
+              className="text-xs"
+            >
+              {selectedProducts.size === filteredProducts.length ? 'Deselect All' : 'Select All'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-full text-sm text-gray-300">
+            <TableHeader className="bg-gray-800/70">
+              <TableRow>
+                <TableHead className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded"
+                  />
+                </TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Product ID</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Name</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Category</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Stock</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Quick Adjust</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Price</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Total Value</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Status</TableHead>
+                <TableHead className="whitespace-nowrap px-4 py-3">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableHead className="w-12 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
-                      onChange={handleSelectAll}
-                      className="rounded"
-                    />
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Product ID</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Name</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Category</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Stock</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Quick Adjust</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Price</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Total Value</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Status</TableHead>
-                  <TableHead className="whitespace-nowrap px-4 py-3">Actions</TableHead>
+                  <TableCell colSpan={10} className="text-center py-10 text-gray-500">
+                    No products found.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-10 text-gray-500">
-                      No products found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProducts.map((product, index) => {
-                    const stockStatus = getStockStatus(product.currentStock, product.minStock, product.maxStock);
-                    const stockPercent = getStockPercentage(product.currentStock, product.maxStock);
+              ) : (
+                filteredProducts.map((product) => {
+                  const stockStatus = getStockStatus(product.currentStock, product.minStock, product.maxStock)
+                  const stockPercent = getStockPercentage(product.currentStock, product.maxStock)
 
-                    return (
-                      <TableRow
-                        key={product.id}
-                        className={`hover:bg-gray-700 transition duration-300 cursor-pointer ${
-                          selectedProducts.has(product.id) ? "bg-blue-900/20" : ""
-                        }`}
-                      >
-                        {index === 0 ? (
-                          <TableCell className="px-4 py-3"></TableCell> // Empty cell for first row
-                        ) : (
-                          <TableCell className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedProducts.has(product.id)}
-                              onChange={() => handleSelectProduct(product.id)}
-                              className="rounded"
-                            />
-                          </TableCell>
-                        )}
-                        <TableCell className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-400">
-                          {product.id}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 font-semibold">{product.name}</TableCell>
-                        <TableCell className="px-4 py-3">{product.category}</TableCell>
-                        <TableCell className="px-4 py-3 w-32">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{product.currentStock}</span> / {product.maxStock}
-                          </div>
-                          <Progress
-                            value={stockPercent}
-                            className={`h-2 rounded-lg ${
-                              stockStatus.status === "out-of-stock"
-                                ? "bg-red-800"
-                                : stockStatus.status === "low-stock"
-                                ? "bg-orange-800"
-                                : "bg-green-800"
-                            }`}
-                          />
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => handleQuickStockAdjustment(product.id, -1)}
-                              disabled={product.currentStock === 0}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => handleQuickStockAdjustment(product.id, 1)}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">{product.unitPrice}</TableCell>
-                        <TableCell className="px-4 py-3">{product.totalValue}</TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
+                  return (
+                    <TableRow
+                      key={product.id}
+                      className={`hover:bg-gray-700 transition duration-300 cursor-pointer ${
+                        selectedProducts.has(product.id) ? 'bg-blue-900/20' : ''
+                      }`}
+                    >
+                      <TableCell className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.has(product.id)}
+                          onChange={() => handleSelectProduct(product.id)}
+                          className="rounded"
+                        />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-400">
+                        {product.id}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 font-semibold">{product.name}</TableCell>
+                      <TableCell className="px-4 py-3">{product.category}</TableCell>
+                      <TableCell className="px-4 py-3 w-32">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{product.currentStock}</span> / {product.maxStock}
+                        </div>
+                        <Progress
+                          value={stockPercent}
+                          className={`h-2 rounded-lg ${
+                            stockStatus.status === "out-of-stock"
+                              ? "bg-red-800"
+                              : stockStatus.status === "low-stock"
+                              ? "bg-orange-800"
+                              : "bg-green-800"
+                          }`}
+                        />
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <Button
                             variant="outline"
-                            className={`uppercase px-3 py-1 rounded-full text-[0.65rem] font-semibold ${stockStatus.color} text-white`}
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => handleQuickStockAdjustment(product.id, -1)}
+                            disabled={product.currentStock === 0}
                           >
-                            {stockStatus.text}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => setViewingProduct(product)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => setEditingProduct(product)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => handleQuickStockAdjustment(product.id, 1)}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">{product.unitPrice}</TableCell>
+                      <TableCell className="px-4 py-3">{product.totalValue}</TableCell>
+                      <TableCell className="px-4 py-3">
+                        <Badge
+                          variant="outline"
+                          className={`uppercase px-3 py-1 rounded-full text-[0.65rem] font-semibold ${
+                            stockStatus.color
+                          } text-white`}
+                        >
+                          {stockStatus.text}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setViewingProduct(product)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setEditingProduct(product)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Product Details Modal */}
       {viewingProduct && (
