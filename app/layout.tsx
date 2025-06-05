@@ -8,7 +8,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "VendAI - FMCG Distribution Platform",
   description: "AI-powered distribution management for FMCG businesses in Kenya",
-    generator: 'v0.dev'
+    generator: 'v0.dev',
+  icons: {
+    icon: "/vendai-logo.jpeg", // Path to your favicon in the public folder
+  },
 }
 
 export default function RootLayout({
