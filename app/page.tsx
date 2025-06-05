@@ -31,7 +31,7 @@ export default function VendAI() {
       case "dashboard":
         return <DashboardView onNavigate={handleNavigate} />;
       case "inventory":
-        return <InventoryView />;
+        return <InventoryView triggerScrollToProducts={triggerAction === "scrollToProductsTable"} />;
       case "orders":
         return <OrdersView triggerNewOrderModal={triggerAction === "openNewOrderModal"} />;
       case "customers":

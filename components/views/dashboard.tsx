@@ -228,7 +228,7 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
             <Button
               variant="outline"
               className="w-full justify-start border-gray-700 hover:bg-gray-800 text-sm"
-              onClick={() => onNavigate("inventory")}
+              onClick={() => onNavigate("inventory", "scrollToProductsTable")}
             >
               <Package className="h-4 w-4 mr-2" />
               Check Inventory
