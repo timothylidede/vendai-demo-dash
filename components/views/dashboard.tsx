@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 
 interface DashboardViewProps {
-  onNavigate: (view: string) => void
+  onNavigate: (view: string, action?: string) => void; // Allow optional action parameter
 }
 
 export function DashboardView({ onNavigate }: DashboardViewProps) {
@@ -220,7 +220,7 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
           <CardContent className="space-y-3">
             <Button
               className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-sm"
-              onClick={() => onNavigate("orders")}
+              onClick={() => onNavigate("orders", "openNewOrderModal")} // Pass the action
             >
               <Plus className="h-4 w-4 mr-2" />
               Create New Order

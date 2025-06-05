@@ -43,7 +43,11 @@ import {
   MoreHorizontal
 } from "lucide-react"
 
-export default function EnhancedOrdersView() {
+interface EnhancedOrdersViewProps {
+  triggerNewOrderModal?: boolean; // New prop to trigger modal
+}
+
+export default function EnhancedOrdersView({ triggerNewOrderModal = false }: EnhancedOrdersViewProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
@@ -231,6 +235,10 @@ export default function EnhancedOrdersView() {
       ]
     },
   ]
+
+  useEffect(() => {
+    setShowNewOrderModal(triggerNewOrderModal);
+  }, [triggerNewOrderModal]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
