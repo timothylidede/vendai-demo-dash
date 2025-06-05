@@ -1283,7 +1283,7 @@ export default function RoutesView() {
                           <TableCell>
                             <div className="text-center">
                               <span className={`text-lg font-bold ${getEfficiencyColor(route.efficiency)}`}>
-                                {route.efficiency}%
+                                {route.efficiency.toFixed(1)}% {/* Changed to truncate to 1 decimal */}
                               </span>
                               <p className="text-xs text-gray-400">{route.distance}</p>
                             </div>
