@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,7 +59,21 @@ export default function EnhancedOrdersView() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
 
-  const orderStats = {
+  const [showNewOrderModal, setShowNewOrderModal] = useState(false)
+  const [newOrderForm, setNewOrderForm] = useState({
+    customer: '',
+    customerType: 'Retail',
+    location: '',
+    phone: '',
+    email: '',
+    deliveryDate: '',
+    priority: 'normal',
+    paymentMethod: 'M-Pesa',
+    notes: '',
+    products: [{ name: '', quantity: 1, price: 0 }]
+  })
+
+    const orderStats = {
     total: 1247,
     pending: 23,
     delivered: 1164,
@@ -257,6 +271,132 @@ export default function EnhancedOrdersView() {
       default: return null
     }
   }
+
+  // Add this function to handle form changes
+interface NewOrderProduct {
+  name: string
+  quantity: number
+  price: number
+}
+
+interface NewOrderForm {
+  customer: string
+  customerType: string
+  location: string
+  phone: string
+  email: string
+  deliveryDate: string
+  priority: string
+  paymentMethod: string
+  notes: string
+  products: NewOrderProduct[]
+}
+
+const handleNewOrderFormChange = <K extends keyof NewOrderForm>(field: K, value: NewOrderForm[K]) => {
+  setNewOrderForm(prev => ({
+    ...prev,
+    [field]: value
+  }))
+}
+
+// Add this function to handle product changes
+interface ProductChangeField {
+  name: string
+  quantity: number
+  price: number
+  [key: string]: string | number
+}
+
+const handleProductChange = (
+  index: number,
+  field: keyof ProductChangeField,
+  value: string | number
+) => {
+  setNewOrderForm(prev => ({
+    ...prev,
+    products: prev.products.map((product, i) => 
+      i === index ? { ...product, [field]: value } : product
+    )
+  }))
+}
+
+// Add this function to add new product row
+const addProductRow = () => {
+  setNewOrderForm(prev => ({
+    ...prev,
+    products: [...prev.products, { name: '', quantity: 1, price: 0 }]
+  }))
+}
+
+// Add this function to remove product row
+interface RemoveProductRow {
+  (index: number): void
+}
+
+const removeProductRow: RemoveProductRow = (index) => {
+  if (newOrderForm.products.length > 1) {
+    setNewOrderForm(prev => ({
+      ...prev,
+      products: prev.products.filter((_, i) => i !== index)
+    }))
+  }
+}
+
+// Add this function to handle form submission
+const handleCreateOrder = () => {
+  // Generate new order ID
+  const newOrderId = `ORD-2024-${String(orders.length + 1).padStart(3, '0')}`
+  
+  // Calculate total amount
+  const totalAmount = newOrderForm.products.reduce((sum, product) => 
+    sum + (product.quantity * product.price), 0
+  )
+  
+  // Calculate total items
+  const totalItems = newOrderForm.products.reduce((sum, product) => 
+    sum + product.quantity, 0
+  )
+  
+  const newOrder = {
+    id: newOrderId,
+    customer: newOrderForm.customer,
+    customerType: newOrderForm.customerType,
+    location: newOrderForm.location,
+    date: new Date().toISOString().split('T')[0],
+    items: totalItems,
+    amount: `KSh ${totalAmount.toLocaleString()}`,
+    status: 'pending',
+    paymentStatus: 'pending',
+    paymentMethod: newOrderForm.paymentMethod,
+    priority: newOrderForm.priority,
+    phone: newOrderForm.phone,
+    email: newOrderForm.email,
+    deliveryDate: newOrderForm.deliveryDate,
+    notes: newOrderForm.notes,
+    products: newOrderForm.products.filter(p => p.name && p.quantity > 0)
+  }
+  
+  // In a real app, you would make an API call here
+  console.log('Creating new order:', newOrder)
+  
+  // Reset form and close modal
+  setNewOrderForm({
+    customer: '',
+    customerType: 'Retail',
+    location: '',
+    phone: '',
+    email: '',
+    deliveryDate: '',
+    priority: 'normal',
+    paymentMethod: 'M-Pesa',
+    notes: '',
+    products: [{ name: '', quantity: 1, price: 0 }]
+  })
+  setShowNewOrderModal(false)
+  
+  // Show success message or redirect
+  alert('Order created successfully!')
+}
 
   const handleSelectOrder = (orderId: string) => {
     setSelectedOrders(prev => 
@@ -468,7 +608,10 @@ export default function EnhancedOrdersView() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 px-6 rounded-xl">
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 px-6 rounded-xl"
+              onClick={() => setShowNewOrderModal(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               New Order
             </Button>
@@ -888,6 +1031,248 @@ export default function EnhancedOrdersView() {
           </Card>
         </div>
       )}
+      {/* New Order Modal */}
+      {showNewOrderModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="bg-gray-900 border-gray-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <CardHeader className="p-6 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-semibold text-white">
+                  Create New Order
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowNewOrderModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Customer Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white mb-4">Customer Information</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Customer Name *</label>
+                    <Input
+                      value={newOrderForm.customer}
+                      onChange={(e) => handleNewOrderFormChange('customer', e.target.value)}
+                      placeholder="Enter customer name"
+                      className="bg-gray-800/50 border-gray-700"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Customer Type</label>
+                    <select
+                      value={newOrderForm.customerType}
+                      onChange={(e) => handleNewOrderFormChange('customerType', e.target.value)}
+                      className="w-full h-10 bg-gray-800/50 border border-gray-700 rounded-lg px-3 text-sm text-gray-200"
+                    >
+                      <option value="Retail">Retail</option>
+                      <option value="Wholesale">Wholesale</option>
+                      <option value="Modern Trade">Modern Trade</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
+                    <Input
+                      value={newOrderForm.location}
+                      onChange={(e) => handleNewOrderFormChange('location', e.target.value)}
+                      placeholder="Enter location"
+                      className="bg-gray-800/50 border-gray-700"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number *</label>
+                    <Input
+                      value={newOrderForm.phone}
+                      onChange={(e) => handleNewOrderFormChange('phone', e.target.value)}
+                      placeholder="+254712345678"
+                      className="bg-gray-800/50 border-gray-700"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <Input
+                      type="email"
+                      value={newOrderForm.email}
+                      onChange={(e) => handleNewOrderFormChange('email', e.target.value)}
+                      placeholder="customer@email.com"
+                      className="bg-gray-800/50 border-gray-700"
+                    />
+                  </div>
+                </div>
+
+                {/* Order Details */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white mb-4">Order Details</h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Delivery Date *</label>
+                    <Input
+                      type="date"
+                      value={newOrderForm.deliveryDate}
+                      onChange={(e) => handleNewOrderFormChange('deliveryDate', e.target.value)}
+                      className="bg-gray-800/50 border-gray-700"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                    <select
+                      value={newOrderForm.priority}
+                      onChange={(e) => handleNewOrderFormChange('priority', e.target.value)}
+                      className="w-full h-10 bg-gray-800/50 border border-gray-700 rounded-lg px-3 text-sm text-gray-200"
+                    >
+                      <option value="low">Low</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Payment Method</label>
+                    <select
+                      value={newOrderForm.paymentMethod}
+                      onChange={(e) => handleNewOrderFormChange('paymentMethod', e.target.value)}
+                      className="w-full h-10 bg-gray-800/50 border border-gray-700 rounded-lg px-3 text-sm text-gray-200"
+                    >
+                      <option value="M-Pesa">M-Pesa</option>
+                      <option value="Credit">Credit</option>
+                      <option value="Cash on Delivery">Cash on Delivery</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                    <textarea
+                      value={newOrderForm.notes}
+                      onChange={(e) => handleNewOrderFormChange('notes', e.target.value)}
+                      placeholder="Enter any special notes or instructions"
+                      className="w-full h-20 bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Products Section */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Products</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addProductRow}
+                    className="border-blue-500 text-blue-400 hover:bg-blue-600 hover:text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Product
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {newOrderForm.products.map((product, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-3 items-end">
+                      <div className="col-span-5">
+                        <label className="block text-sm text-gray-400 mb-1">Product Name</label>
+                        <Input
+                          value={product.name}
+                          onChange={(e) => handleProductChange(index, 'name', e.target.value)}
+                          placeholder="Enter product name"
+                          className="bg-gray-800/50 border-gray-700"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={product.quantity}
+                          onChange={(e) => handleProductChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                          className="bg-gray-800/50 border-gray-700"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="block text-sm text-gray-400 mb-1">Unit Price (KSh)</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={product.price}
+                          onChange={(e) => handleProductChange(index, 'price', parseFloat(e.target.value) || 0)}
+                          className="bg-gray-800/50 border-gray-700"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <label className="block text-sm text-gray-400 mb-1">Total</label>
+                        <div className="h-10 flex items-center text-sm text-gray-300">
+                          {(product.quantity * product.price).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        {newOrderForm.products.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeProductRow(index)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-10 w-10 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Order Summary */}
+                <div className="mt-6 p-4 bg-gray-800/30 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Total Items:</span>
+                    <span className="text-white font-medium">
+                      {newOrderForm.products.reduce((sum, p) => sum + p.quantity, 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-gray-400">Total Amount:</span>
+                    <span className="text-white font-bold text-lg">
+                      KSh {newOrderForm.products.reduce((sum, p) => sum + (p.quantity * p.price), 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-8 flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewOrderModal(false)}
+                  className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateOrder}
+                  disabled={!newOrderForm.customer || !newOrderForm.location || !newOrderForm.phone || !newOrderForm.deliveryDate}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  Create Order
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
     </div>
   )
 }
