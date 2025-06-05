@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,9 +9,11 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { StatCard } from "@/components/ui/stat-card"
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner"
 import { MapPin, Search, Plus, Download, Navigation, Clock, Zap, Target, TrendingUp, Eye, Play, Pause, RotateCcw, Fuel, Route, AlertTriangle, Settings, Calendar, BarChart3, Activity, DollarSign, CheckCircle, XCircle, Info, Edit, Phone, MessageSquare, RefreshCw, Truck, Users, Timer } from 'lucide-react'
 
@@ -32,6 +34,135 @@ type MapMarker = {
   route?: string
   pulse?: boolean
 }
+
+// Simple Dijkstra-like algorithm for route optimization
+interface RouteOptimizationPriorities {
+  time: number
+  fuel: number
+  distance: number
+}
+
+interface OptimizableRoute {
+  id: string
+  name: string
+  driver: string
+  vehicle: string
+  status: string
+  progress: number
+  outlets: number
+  outletsCompleted: number
+  estimatedTime: string
+  actualTime: string
+  distance: string
+  efficiency: number
+  revenue: string
+  startTime: string
+  estimatedCompletion: string
+  currentLocation: string
+  nextStop: string
+  fuelCost: string
+  optimizationSavings: string
+}
+
+const optimizeRoute = (
+  route: OptimizableRoute,
+  priorities: RouteOptimizationPriorities = { time: 0.5, fuel: 0.3, distance: 0.2 }
+): OptimizableRoute => {
+  const { time, fuel, distance } = priorities;
+  const currentDistance = parseFloat(route.distance);
+  const currentFuelCost = parseFloat(route.fuelCost.replace("KSh ", ""));
+  const timeInHours = parseFloat(route.estimatedTime) * 60; // Convert to minutes
+
+  // Simulate optimization by reducing metrics based on priorities
+  const optimizedDistance = currentDistance * (1 - distance * 0.15);
+  const optimizedFuelCost = currentFuelCost * (1 - fuel * 0.2);
+  const optimizedTime = timeInHours * (1 - time * 0.1);
+
+  // Calculate savings
+  const savings = Math.round((currentFuelCost - optimizedFuelCost) + (currentDistance - optimizedDistance) * 10);
+  const efficiencyGain = Math.min(route.efficiency + (time * 5 + fuel * 3 + distance * 2), 98);
+
+  return {
+    ...route,
+    distance: `${optimizedDistance.toFixed(1)} km`,
+    fuelCost: `KSh ${Math.round(optimizedFuelCost)}`,
+    estimatedTime: `${(optimizedTime / 60).toFixed(1)}h`,
+    efficiency: Math.round(efficiencyGain),
+    optimizationSavings: `KSh ${savings}`,
+  };
+};
+
+// Driver assignment algorithm based on availability and proximity
+interface Driver {
+  name: string;
+  vehicle: string;
+  available: boolean;
+  currentLoad: number;
+}
+
+interface AssignableRoute {
+  driver: string;
+  vehicle: string;
+  [key: string]: any;
+}
+
+// Route interface (move this above assignDriver)
+interface Route {
+  id: string;
+  name: string;
+  driver: string;
+  vehicle: string;
+  status: string;
+  progress: number;
+  outlets: number;
+  outletsCompleted: number;
+  estimatedTime: string;
+  actualTime: string;
+  distance: string;
+  efficiency: number;
+  revenue: string;
+  startTime: string;
+  estimatedCompletion: string;
+  currentLocation: string;
+  nextStop: string;
+  fuelCost: string;
+  optimizationSavings: string;
+}
+
+// Driver assignment algorithm based on availability and proximity
+const assignDriver = (route: Route, drivers: { id: string; name: string; vehicle: string; available: boolean; currentLoad: number }[]): Route => {
+  const availableDrivers = drivers.filter((d) => d.available);
+  if (!availableDrivers.length) return route;
+
+  // Score drivers based on proximity to route's starting location and load
+  const scoredDrivers = availableDrivers.map((driver) => {
+    const proximityScore = Math.random() * 100; // Simulate distance to route start
+    const loadScore = 100 - driver.currentLoad * 10; // Lower score for higher load
+    return { driver, score: proximityScore * 0.6 + loadScore * 0.4 };
+  });
+
+  // Select driver with highest score
+  const bestDriver = scoredDrivers.sort((a, b) => b.score - a.score)[0]?.driver;
+  return bestDriver
+    ? { ...route, driver: bestDriver.name, vehicle: bestDriver.vehicle }
+    : route;
+};
+
+const [isAdvancedOptimizationOpen, setIsAdvancedOptimizationOpen] = useState(false);
+const [isDriverAssignmentOpen, setIsDriverAssignmentOpen] = useState(false);
+const [optimizationParams, setOptimizationParams] = useState({
+  prioritizeTime: 0.5,
+  prioritizeFuel: 0.3,
+  prioritizeDistance: 0.2,
+  avoidTraffic: true,
+});
+const [drivers, setDrivers] = useState([
+  { id: "D1", name: "John Kamau", vehicle: "KCA 123A", available: true, currentLoad: 2 },
+  { id: "D2", name: "Mary Wanjiku", vehicle: "KBZ 456B", available: true, currentLoad: 3 },
+  { id: "D3", name: "Peter Ochieng", vehicle: "KCX 789C", available: false, currentLoad: 5 },
+  { id: "D4", name: "Grace Muthoni", vehicle: "KDA 012D", available: true, currentLoad: 1 },
+  { id: "D5", name: "David Mwangi", vehicle: "KEB 345E", available: true, currentLoad: 0 },
+]);
 
 const MockMap = ({ routes, selectedRoute, onRouteSelect }: MockMapProps) => {
   const [animatedMarkers, setAnimatedMarkers] = useState<MapMarker[]>([])
@@ -608,6 +739,28 @@ export default function RoutesView() {
     timestamp: string
   }
 
+  interface Route {
+    id: string;
+    name: string;
+    driver: string;
+    vehicle: string;
+    status: string;
+    progress: number;
+    outlets: number;
+    outletsCompleted: number;
+    estimatedTime: string;
+    actualTime: string;
+    distance: string;
+    efficiency: number;
+    revenue: string;
+    startTime: string;
+    estimatedCompletion: string;
+    currentLocation: string;
+    nextStop: string;
+    fuelCost: string;
+    optimizationSavings: string;
+  }
+
   const addNotification = (message: string, type: "success" | "error" | "info" = "success") => {
     const notification: Notification = {
       id: Date.now(),
@@ -918,7 +1071,7 @@ export default function RoutesView() {
                   ? "bg-gradient-to-r from-yellow-600 to-yellow-700"
                   : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               }`}
-              onClick={handleOptimizeAll}
+              onClick={() => setIsAdvancedOptimizationOpen(true)} // Open advanced optimization modal
               disabled={isOptimizing}
             >
               {isOptimizing ? (
@@ -929,31 +1082,71 @@ export default function RoutesView() {
               ) : (
                 <>
                   <Zap className="h-4 w-4 mr-2" />
-                  AI Optimize All
+                  Advanced AI Optimize
                 </>
               )}
             </Button>
 
             <Button
+              className="w-full justify-start bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-sm transition-all duration-300 hover:scale-105"
+              onClick={() => setIsDriverAssignmentOpen(true)} // Open driver assignment modal
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign Drivers
+            </Button>
+
+            <Button
               variant="outline"
               className="w-full justify-start border-gray-700 hover:bg-gray-800/50 text-sm transition-all duration-300 hover:scale-105"
-              onClick={() => toast.success("Routes exported successfully")}
+              onClick={() => {
+                toast.success("Routes exported successfully");
+                // Simulate CSV export
+                const csv = routes.map((r) => Object.values(r).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "routes.csv";
+                a.click();
+              }}
             >
               <Download className="h-4 w-4 mr-2" />
               Export Routes
             </Button>
+
             <Button
               variant="outline"
               className="w-full justify-start border-gray-700 hover:bg-gray-800/50 text-sm transition-all duration-300 hover:scale-105"
-              onClick={() => toast.success("Optimization reset")}
+              onClick={() => {
+                setRoutes((prev) =>
+                  prev.map((r) => ({
+                    ...r,
+                    efficiency: Math.max(r.efficiency - Math.random() * 10, 0),
+                    optimizationSavings: `KSh ${Math.round(
+                      parseFloat(r.optimizationSavings.replace("KSh ", "")) * 0.8,
+                    )}`,
+                  })),
+                );
+                toast.success("Optimization reset");
+              }}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset Optimization
             </Button>
+
             <Button
               variant="outline"
               className="w-full justify-start border-gray-700 hover:bg-gray-800/50 text-sm transition-all duration-300 hover:scale-105"
-              onClick={() => toast.info("Emergency reroute initiated")}
+              onClick={() => {
+                setRoutes((prev) =>
+                  prev.map((r) =>
+                    r.status === "active"
+                      ? optimizeRoute(r, { time: 0.7, fuel: 0.2, distance: 0.1 }) // Prioritize time for emergency
+                      : r,
+                  ),
+                );
+                addNotification("Emergency reroute completed with time priority", "info");
+              }}
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
               Emergency Reroute
@@ -1441,6 +1634,151 @@ export default function RoutesView() {
           addNotification(`Route ${updatedRoute.id} updated successfully`)
         }}
       />
+
+      {/* Advanced Optimization Modal */}
+      <Dialog open={isAdvancedOptimizationOpen} onOpenChange={setIsAdvancedOptimizationOpen}>
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center">
+              <Zap className="h-5 w-5 mr-2 text-yellow-500" />
+              Advanced Route Optimization
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div>
+              <Label className="text-gray-200">Prioritize Time ({optimizationParams.prioritizeTime.toFixed(2)})</Label>
+              <Slider
+                value={[optimizationParams.prioritizeTime]}
+                onValueChange={([value]) =>
+                  setOptimizationParams((prev) => ({
+                    ...prev,
+                    prioritizeTime: value,
+                    prioritizeFuel: prev.prioritizeFuel * (1 - value / prev.prioritizeTime),
+                    prioritizeDistance:
+                      1 - value - prev.prioritizeFuel * (1 - value / prev.prioritizeTime),
+                  }))
+                }
+                min={0}
+                max={1}
+                step={0.01}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label className="text-gray-200">Prioritize Fuel ({optimizationParams.prioritizeFuel.toFixed(2)})</Label>
+              <Slider
+                value={[optimizationParams.prioritizeFuel]}
+                onValueChange={([value]) =>
+                  setOptimizationParams((prev) => ({
+                    ...prev,
+                    prioritizeFuel: value,
+                    prioritizeTime: prev.prioritizeTime * (1 - value / prev.prioritizeFuel),
+                    prioritizeDistance:
+                      1 - value - prev.prioritizeTime * (1 - value / prev.prioritizeFuel),
+                  }))
+                }
+                min={0}
+                max={1}
+                step={0.01}
+                className="mt-2"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={optimizationParams.avoidTraffic}
+                onCheckedChange={(checked) =>
+                  setOptimizationParams((prev) => ({ ...prev, avoidTraffic: !!checked }))
+                }
+              />
+              <Label className="text-gray-200">Avoid Traffic Hotspots</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAdvancedOptimizationOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                setIsOptimizing(true);
+                setTimeout(() => {
+                  setRoutes((prev) =>
+                    prev.map((r) =>
+                      r.status !== "completed"
+                        ? optimizeRoute(r, {
+                            time: optimizationParams.prioritizeTime,
+                            fuel: optimizationParams.prioritizeFuel,
+                            distance: optimizationParams.prioritizeDistance,
+                          })
+                        : r
+                    ),
+                  );
+                  setIsOptimizing(false);
+                  addNotification("Advanced optimization completed successfully");
+                  setIsAdvancedOptimizationOpen(false);
+                }, 2000);
+              }}
+              disabled={isOptimizing}
+            >
+              {isOptimizing ? <RefreshCw className="animate-spin h-4 w-4 mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+              Optimize Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Driver Assignment Modal */}
+      <Dialog open={isDriverAssignmentOpen} onOpenChange={setIsDriverAssignmentOpen}>
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center">
+              <Users className="h-5 w-5 mr-2 text-purple-500" />
+              Smart Driver Assignment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-300 text-sm">
+              Automatically assign drivers to unassigned or planned routes based on availability and proximity.
+            </p>
+            <div className="space-y-2">
+              {routes
+                .filter((r) => r.driver === "Unassigned" || r.status === "planned")
+                .map((route) => (
+                  <div key={route.id} className="flex items-center justify-between p-2 bg-gray-800/30 rounded">
+                    <span className="text-white text-sm">{route.name} ({route.id})</span>
+                    <span className="text-gray-400 text-xs">{route.driver}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDriverAssignmentOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-purple-600 hover:bg-purple-700"
+              onClick={() => {
+                setRoutes((prev) =>
+                  prev.map((r) =>
+                    r.driver === "Unassigned" || r.status === "planned" ? assignDriver(r, drivers) : r,
+                  ) as Route[], // Explicitly cast to Route[] to satisfy TypeScript
+                );
+                addNotification("Drivers assigned successfully");
+                setIsDriverAssignmentOpen(false);
+              }}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign Drivers
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

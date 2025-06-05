@@ -104,13 +104,13 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       {!isCollapsed && (
         <div className="p-6 border-t border-gray-800/50 flex-shrink-0">
           <div className="text-xs text-gray-500">
-            <div className="flex items-baseline">
+            <div className="flex items-baseline space-x-1">
               <span>vend</span>
               <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-semibold lowercase">
                 ai
               </span>
-              <span>v2.4.1</span>
             </div>
+            <span>v2.4.1</span>
             <p className="mt-1">© 2025 vendai Ltd</p>
           </div>
         </div>
